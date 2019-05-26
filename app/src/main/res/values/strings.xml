@@ -17,6 +17,7 @@
     <string name="layers">Layers</string>
     <string name="open_topo_map">OpenTopoMap</string>
     <string name="open_street_map">OpenSteetMap</string>
+    <string name="open_street_map_fr">OpenSteetMap FR</string>
     <string name="lonvia_hiking">Lonvia Hiking</string>
     <string name="lonvia_cycling">Lonvia Cycling</string>
     <string name="base_map">Base Map</string>
@@ -28,5 +29,8 @@
 
     <string name="invalid_gpx">Invalid GPX</string>
     <string name="location_unknown">Location unknown</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 
 </resources>
