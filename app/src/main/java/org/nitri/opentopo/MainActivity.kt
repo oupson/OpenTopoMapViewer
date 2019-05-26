@@ -78,6 +78,12 @@ class MainActivity : AppCompatActivity(), MapFragment.OnFragmentInteractionListe
                         Log.i(TAG, "Uri: " + mGpxUriString!!)
                         mZoomToGpx = true
                     }
+                    "content" -> {
+                        mGpxUri = intent.data
+                        mGpxUriString = mGpxUri!!.toString()
+                        Log.i(TAG, "Uri: " + mGpxUriString!!)
+                        mZoomToGpx = true
+                    }
                 }
             }
         }

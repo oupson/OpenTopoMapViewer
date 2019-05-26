@@ -51,7 +51,6 @@ class MapFragment : Fragment(), LocationListener, PopupMenu.OnMenuItemClickListe
     private var mOverlayHelper: OverlayHelper? = null
     private val mMapHandler = Handler()
     private val mCenterRunnable = object : Runnable {
-
         override fun run() {
             if (mMapView != null && mCurrentLocation != null) {
                 mMapView!!.controller.animateTo(GeoPoint(mCurrentLocation!!))
@@ -60,9 +59,14 @@ class MapFragment : Fragment(), LocationListener, PopupMenu.OnMenuItemClickListe
         }
     }
 
+    private val osmFrTileSource : XYTileSource by lazy {
+        XYTileSource("osm fr", 1, 19, 256, ".png",
+                arrayOf("https://a.tile.openstreetmap.fr/osmfr/", "https://b.tile.openstreetmap.fr/osmfr/", "https://c.tile.openstreetmap.fr/osmfr/"))
+    }
+
     private val mDragListener = object : MapListener {
         override fun onScroll(event: ScrollEvent): Boolean {
-            if (mFollow && mMapHandler != null && mCenterRunnable != null) {
+            if (mFollow) {
                 mMapHandler.removeCallbacks(mCenterRunnable)
                 mMapHandler.postDelayed(mCenterRunnable, 6000)
             }
@@ -184,10 +188,7 @@ class MapFragment : Fragment(), LocationListener, PopupMenu.OnMenuItemClickListe
             }
         }, 500)
     }
-    val osmFrTileSource : XYTileSource by lazy {
-        XYTileSource("osmfr", 1, 19, 256, ".png",
-                arrayOf("https://a.tile.openstreetmap.fr/osmfr/", "https://b.tile.openstreetmap.fr/osmfr/", "https://c.tile.openstreetmap.fr/osmfr/"))
-    }
+
     private fun setBaseMap() {
         when (mBaseMap) {
             BASE_MAP_OTM -> mMapView!!.setTileSource(TileSourceFactory.OpenTopo)
@@ -248,7 +249,7 @@ class MapFragment : Fragment(), LocationListener, PopupMenu.OnMenuItemClickListe
     private fun enableFollow() {
         mFollow = true
         if (activity != null)
-            (activity as AppCompatActivity).supportInvalidateOptionsMenu()
+            (activity as AppCompatActivity).invalidateOptionsMenu()
         mLocationOverlay!!.enableFollowLocation()
         mMapHandler.removeCallbacks(mCenterRunnable)
         mMapHandler.post(mCenterRunnable)
@@ -257,7 +258,7 @@ class MapFragment : Fragment(), LocationListener, PopupMenu.OnMenuItemClickListe
     private fun disableFollow() {
         mFollow = false
         if (activity != null)
-            (activity as AppCompatActivity).supportInvalidateOptionsMenu()
+            (activity as AppCompatActivity).invalidateOptionsMenu()
         mLocationOverlay!!.disableFollowLocation()
         mMapHandler.removeCallbacks(mCenterRunnable)
     }
@@ -307,7 +308,7 @@ class MapFragment : Fragment(), LocationListener, PopupMenu.OnMenuItemClickListe
     internal fun setGpx(gpx: Gpx, zoom: Boolean) {
         mOverlayHelper!!.setGpx(gpx)
         if (activity != null)
-            (activity as AppCompatActivity).supportInvalidateOptionsMenu()
+            (activity as AppCompatActivity).invalidateOptionsMenu()
         if (zoom) {
             disableFollow()
             zoomToBounds(Util.area(gpx))
@@ -315,22 +316,16 @@ class MapFragment : Fragment(), LocationListener, PopupMenu.OnMenuItemClickListe
     }
 
     private fun showGpxdialog() {
-        val builder: AlertDialog.Builder
-        builder = AlertDialog.Builder(Objects.requireNonNull<androidx.fragment.app.FragmentActivity>(activity), R.style.AlertDialogTheme)
+        val builder: AlertDialog.Builder = AlertDialog.Builder(Objects.requireNonNull<androidx.fragment.app.FragmentActivity>(activity), R.style.AlertDialogTheme)
         builder.setTitle(getString(R.string.gpx))
                 .setMessage(getString(R.string.discard_current_gpx))
-                .setPositiveButton(android.R.string.ok) { dialog, which ->
-                    if (mOverlayHelper != null) {
-                        mOverlayHelper!!.clearGpx()
-                        if (activity != null)
-                            (activity as AppCompatActivity).supportInvalidateOptionsMenu()
-                    }
-                    if (mListener != null) {
-                        mListener!!.selectGpx()
-                    }
+                .setPositiveButton(android.R.string.ok) { dialog, _ ->
+                    mOverlayHelper?.clearGpx()
+                    activity?.invalidateOptionsMenu()
+                    mListener?.selectGpx()
                     dialog.dismiss()
                 }
-                .setNegativeButton(android.R.string.cancel) { dialog, which -> dialog.cancel() }
+                .setNegativeButton(android.R.string.cancel) { dialog, _ -> dialog.cancel() }
                 .setIcon(R.drawable.ic_alert)
         val dialog = builder.create()
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
@@ -338,7 +333,7 @@ class MapFragment : Fragment(), LocationListener, PopupMenu.OnMenuItemClickListe
 
     }
 
-    fun zoomToBounds(box: BoundingBox) {
+    private fun zoomToBounds(box: BoundingBox) {
         if (mMapView!!.height > 0) {
             mMapView!!.zoomToBoundingBox(box, true, 64)
         } else {
@@ -346,8 +341,8 @@ class MapFragment : Fragment(), LocationListener, PopupMenu.OnMenuItemClickListe
             vto.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
                 override fun onGlobalLayout() {
                     mMapView!!.zoomToBoundingBox(box, true, 64)
-                    val vto = mMapView!!.viewTreeObserver
-                    vto.removeOnGlobalLayoutListener(this)
+                    val vto1 = mMapView!!.viewTreeObserver
+                    vto1.removeOnGlobalLayoutListener(this)
                 }
             })
         }
@@ -360,46 +355,48 @@ class MapFragment : Fragment(), LocationListener, PopupMenu.OnMenuItemClickListe
 
     private fun showNearbyPlace(nearbyPlace: NearbyItem?) {
         //TODO: set overlay item
-        mOverlayHelper!!.setNearby(nearbyPlace!!)
-        animateToLatLon(nearbyPlace.lat, nearbyPlace.lon)
+        if (nearbyPlace != null) {
+            mOverlayHelper?.setNearby(nearbyPlace)
+            animateToLatLon(nearbyPlace.lat, nearbyPlace.lon)
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu?, inflater: MenuInflater?) {
         super.onCreateOptionsMenu(menu, inflater)
-        mListener!!.setUpNavigation(false)
-        inflater!!.inflate(R.menu.menu_main, menu)
+        mListener?.setUpNavigation(false)
+        inflater?.inflate(R.menu.menu_main, menu)
     }
 
     override fun onPrepareOptionsMenu(menu: Menu?) {
         if (mFollow) {
-            menu!!.findItem(R.id.action_follow).isVisible = false
-            menu.findItem(R.id.action_no_follow).isVisible = true
+            menu?.findItem(R.id.action_follow)?.isVisible = false
+            menu?.findItem(R.id.action_no_follow)?.isVisible = true
         } else {
-            menu!!.findItem(R.id.action_follow).isVisible = true
-            menu.findItem(R.id.action_no_follow).isVisible = false
+            menu?.findItem(R.id.action_follow)?.isVisible = true
+            menu?.findItem(R.id.action_no_follow)?.isVisible = false
         }
-        if (mOverlayHelper != null && mOverlayHelper!!.hasGpx()) {
-            menu.findItem(R.id.action_gpx_details).isVisible = true
-            menu.findItem(R.id.action_gpx_zoom).isVisible = true
+        if (mOverlayHelper?.hasGpx() == true) {
+            menu?.findItem(R.id.action_gpx_details)?.isVisible = true
+            menu?.findItem(R.id.action_gpx_zoom)?.isVisible = true
         } else {
-            menu.findItem(R.id.action_gpx_details).isVisible = false
-            menu.findItem(R.id.action_gpx_zoom).isVisible = false
+            menu?.findItem(R.id.action_gpx_details)?.isVisible = false
+            menu?.findItem(R.id.action_gpx_zoom)?.isVisible = false
         }
     }
 
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
         when (item!!.itemId) {
             R.id.action_gpx -> {
-                if (mOverlayHelper != null && mOverlayHelper!!.hasGpx()) {
+                if (mOverlayHelper?.hasGpx() == true) {
                     showGpxdialog()
                 } else {
-                    mListener!!.selectGpx()
+                    mListener?.selectGpx()
                 }
                 return true
             }
             R.id.action_location -> {
                 if (mCurrentLocation != null) {
-                    mMapView!!.controller.animateTo(GeoPoint(mCurrentLocation!!))
+                    mMapView?.controller?.animateTo(GeoPoint(mCurrentLocation))
                 }
                 return true
             }
@@ -421,7 +418,7 @@ class MapFragment : Fragment(), LocationListener, PopupMenu.OnMenuItemClickListe
             R.id.action_nearby -> {
                 if (mListener != null)
                     if (mCurrentLocation != null) {
-                        mListener!!.addNearbyFragment(mCurrentLocation!!)
+                        mListener?.addNearbyFragment(mCurrentLocation!!)
                     } else {
                         Toast.makeText(activity, R.string.location_unknown, Toast.LENGTH_SHORT).show()
                     }
@@ -591,6 +588,8 @@ class MapFragment : Fragment(), LocationListener, PopupMenu.OnMenuItemClickListe
         internal const val BASE_MAP_OTM = 1
         internal const val BASE_MAP_OSM = 2
         internal const val BASE_MAP_OSM_FR = 3
+
+        @Suppress("unused")
         private val TAG = MapFragment::class.java.simpleName
 
         fun newInstance(): MapFragment {
@@ -606,6 +605,7 @@ class MapFragment : Fragment(), LocationListener, PopupMenu.OnMenuItemClickListe
             return mapFragment
         }
 
+        @Suppress("unused")
         fun newInstance(showNearbyPlace: Boolean): MapFragment {
             val mapFragment = MapFragment()
             val arguments = Bundle()

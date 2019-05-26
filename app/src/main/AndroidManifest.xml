@@ -43,6 +43,12 @@
                     android:mimeType="*/*"
                     android:pathPattern=".*\\.gpx"
                     android:scheme="file" />
+
+                <data android:scheme="file" />
+                <data android:scheme="content" />
+                <data android:mimeType="*/*" />
+                <data android:pathPattern=".*\\.gpx" />
+                <data android:host="*" />
             </intent-filter>
         </activity>
     </application>
